@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 
-const API_BASE = "http://localhost:3000";
+const API_BASE = "https://bcsresto-backend.onrender.com";
 const BRANCH_ID = "22222222-2222-2222-2222-222222222222";
 const POLL_INTERVAL = 5000; // نحدّث الطلبات كل 5 ثواني
 
