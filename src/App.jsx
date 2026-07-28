@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import LoginPage from "./LoginPage.jsx";
 
 const API_BASE = "https://bcsresto-backend.onrender.com";
 const BRANCH_ID = "22222222-2222-2222-2222-222222222222";
@@ -22,6 +23,27 @@ export default function App() {
   const [orders, setOrders] = useState([]);
   const [status, setStatus] = useState("loading");
   const [updatingId, setUpdatingId] = useState(null);
+
+  // ============================================
+  // حالة تسجيل الدخول
+  // ============================================
+  const [staff, setStaff] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    const savedToken = localStorage.getItem("bcsresto_token");
+    const savedStaff = localStorage.getItem("bcsresto_staff");
+    if (savedToken && savedStaff) {
+      setStaff(JSON.parse(savedStaff));
+    }
+    setAuthChecked(true);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("bcsresto_token");
+    localStorage.removeItem("bcsresto_staff");
+    setStaff(null);
+  };
 
   const loadOrders = useCallback(() => {
     fetch(`${API_BASE}/api/orders/${BRANCH_ID}`)
@@ -59,13 +81,25 @@ export default function App() {
     }
   };
 
+  if (!authChecked) return null;
+
+  if (!staff) {
+    return <LoginPage onLoginSuccess={(staffData) => setStaff(staffData)} />;
+  }
+
   return (
     <div style={styles.page}>
       <header style={styles.header}>
         <h1 style={styles.title}>🍳 لوحة المطبخ — BCSresto</h1>
-        <span style={styles.liveDot}>
-          <span style={styles.dot} /> تحديث تلقائي كل 5 ثواني
-        </span>
+        <div style={styles.headerRight}>
+          <span style={styles.staffName}>{staff.name}</span>
+          <button style={styles.logoutBtn} onClick={handleLogout}>
+            تسجيل الخروج
+          </button>
+          <span style={styles.liveDot}>
+            <span style={styles.dot} /> تحديث تلقائي كل 5 ثواني
+          </span>
+        </div>
       </header>
 
       {status === "loading" && <div style={styles.statusMsg}>جاري تحميل الطلبات...</div>}
@@ -162,6 +196,28 @@ const styles = {
     fontWeight: 800,
     fontSize: "20px",
     margin: 0,
+  },
+  headerRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+  },
+  staffName: {
+    fontSize: "13px",
+    color: colors.ivory,
+    fontFamily: "'Cairo', sans-serif",
+    fontWeight: 700,
+  },
+  logoutBtn: {
+    background: "transparent",
+    border: `1px solid ${colors.line}`,
+    color: colors.muted,
+    fontSize: "12px",
+    fontFamily: "'Cairo', sans-serif",
+    fontWeight: 700,
+    padding: "6px 14px",
+    borderRadius: "8px",
+    cursor: "pointer",
   },
   liveDot: {
     display: "flex",
