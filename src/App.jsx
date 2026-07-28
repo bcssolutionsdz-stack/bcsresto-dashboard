@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import LoginPage from "./LoginPage.jsx";
+import MenuManager from "./MenuManager.jsx";
 
 const API_BASE = "https://bcsresto-backend.onrender.com";
 const BRANCH_ID = "22222222-2222-2222-2222-222222222222";
@@ -28,13 +29,16 @@ export default function App() {
   // حالة تسجيل الدخول
   // ============================================
   const [staff, setStaff] = useState(null);
+  const [token, setToken] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [activeTab, setActiveTab] = useState("kitchen"); // kitchen | menu
 
   useEffect(() => {
     const savedToken = localStorage.getItem("bcsresto_token");
     const savedStaff = localStorage.getItem("bcsresto_staff");
     if (savedToken && savedStaff) {
       setStaff(JSON.parse(savedStaff));
+      setToken(savedToken);
     }
     setAuthChecked(true);
   }, []);
@@ -43,6 +47,7 @@ export default function App() {
     localStorage.removeItem("bcsresto_token");
     localStorage.removeItem("bcsresto_staff");
     setStaff(null);
+    setToken(null);
   };
 
   const loadOrders = useCallback(() => {
@@ -84,7 +89,14 @@ export default function App() {
   if (!authChecked) return null;
 
   if (!staff) {
-    return <LoginPage onLoginSuccess={(staffData) => setStaff(staffData)} />;
+    return (
+      <LoginPage
+        onLoginSuccess={(staffData, tokenValue) => {
+          setStaff(staffData);
+          setToken(tokenValue);
+        }}
+      />
+    );
   }
 
   return (
@@ -102,7 +114,28 @@ export default function App() {
         </div>
       </header>
 
-      {status === "loading" && <div style={styles.statusMsg}>جاري تحميل الطلبات...</div>}
+      {['admin', 'manager'].includes(staff.role) && (
+        <nav style={styles.tabsNav}>
+          <button
+            style={{ ...styles.tabBtn, ...(activeTab === "kitchen" ? styles.tabBtnActive : {}) }}
+            onClick={() => setActiveTab("kitchen")}
+          >
+            🍳 المطبخ
+          </button>
+          <button
+            style={{ ...styles.tabBtn, ...(activeTab === "menu" ? styles.tabBtnActive : {}) }}
+            onClick={() => setActiveTab("menu")}
+          >
+            📋 إدارة المنيو
+          </button>
+        </nav>
+      )}
+
+      {activeTab === "menu" ? (
+        <MenuManager token={token} />
+      ) : (
+        <>
+          {status === "loading" && <div style={styles.statusMsg}>جاري تحميل الطلبات...</div>}
       {status === "error" && (
         <div style={styles.statusMsgError}>تعذر تحميل الطلبات. تأكد إن السيرفر شغال.</div>
       )}
@@ -161,6 +194,8 @@ export default function App() {
             );
           })}
         </div>
+      )}
+        </>
       )}
     </div>
   );
@@ -232,6 +267,28 @@ const styles = {
     borderRadius: "50%",
     background: colors.olive,
     display: "inline-block",
+  },
+  tabsNav: {
+    display: "flex",
+    gap: "10px",
+    padding: "14px 24px",
+    borderBottom: `1px solid ${colors.line}`,
+  },
+  tabBtn: {
+    background: "transparent",
+    border: `1px solid ${colors.line}`,
+    color: colors.muted,
+    fontFamily: "'Cairo', sans-serif",
+    fontWeight: 700,
+    fontSize: "13px",
+    padding: "8px 16px",
+    borderRadius: "8px",
+    cursor: "pointer",
+  },
+  tabBtnActive: {
+    background: colors.accent,
+    borderColor: colors.accent,
+    color: "#fff",
   },
   statusMsg: {
     padding: "60px 20px",
