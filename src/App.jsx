@@ -160,7 +160,11 @@ export default function App() {
                     <div key={order.id} style={styles.ticket}>
                       <div style={styles.ticketHeader}>
                         <span style={styles.ticketTable}>
-                          {order.table_id ? `طاولة` : order.order_type === "delivery" ? "توصيل" : "استلام"}
+                          {order.tables?.table_number
+                            ? `طاولة ${order.tables.table_number}`
+                            : order.order_type === "delivery"
+                            ? "توصيل"
+                            : "استلام"}
                         </span>
                         <span style={styles.ticketTime}>{timeAgo(order.created_at)}</span>
                       </div>
