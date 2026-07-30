@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import LoginPage from "./LoginPage.jsx";
 import MenuManager from "./MenuManager.jsx";
+import TableSessions from "./TableSessions.jsx";
 
 const API_BASE = "https://bcsresto-backend.onrender.com";
 const BRANCH_ID = "22222222-2222-2222-2222-222222222222";
@@ -128,12 +129,18 @@ export default function App() {
           >
             📋 إدارة المنيو
           </button>
+          <button
+            style={{ ...styles.tabBtn, ...(activeTab === "sessions" ? styles.tabBtnActive : {}) }}
+            onClick={() => setActiveTab("sessions")}
+          >
+            🧾 الفواتير
+          </button>
         </nav>
       )}
 
-      {activeTab === "menu" ? (
-        <MenuManager token={token} />
-      ) : (
+      {activeTab === "menu" && <MenuManager token={token} />}
+      {activeTab === "sessions" && <TableSessions token={token} />}
+      {activeTab === "kitchen" && (
         <>
           {status === "loading" && <div style={styles.statusMsg}>جاري تحميل الطلبات...</div>}
       {status === "error" && (
