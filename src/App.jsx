@@ -87,6 +87,22 @@ export default function App() {
     }
   };
 
+  const cancelOrderByManager = async (orderId) => {
+    if (!window.confirm("متأكد تبي تلغي هذا الطلب؟")) return;
+    setUpdatingId(orderId);
+    try {
+      await fetch(`${API_BASE}/api/admin/orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      loadOrders();
+    } catch (err) {
+      console.error("خطأ بإلغاء الطلب:", err);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   if (!authChecked) return null;
 
   if (!staff) {
@@ -198,6 +214,16 @@ export default function App() {
                       >
                         {updatingId === order.id ? "..." : col.nextLabel}
                       </button>
+
+                      {['admin', 'manager'].includes(staff.role) && (
+                        <button
+                          style={styles.cancelOrderBtn}
+                          disabled={updatingId === order.id}
+                          onClick={() => cancelOrderByManager(order.id)}
+                        >
+                          إلغاء الطلب
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -415,7 +441,7 @@ const styles = {
   advanceBtn: {
     display: "block",
     width: "calc(100% - 28px)",
-    margin: "6px 14px 14px",
+    margin: "6px 14px 6px",
     border: "none",
     background: colors.olive,
     color: colors.bg,
@@ -423,6 +449,20 @@ const styles = {
     fontWeight: 800,
     fontSize: "13px",
     padding: "10px",
+    borderRadius: "8px",
+    cursor: "pointer",
+  },
+  cancelOrderBtn: {
+    display: "block",
+    width: "calc(100% - 28px)",
+    margin: "0 14px 14px",
+    border: `1px solid #7A3A28`,
+    background: "transparent",
+    color: "#D98B7A",
+    fontFamily: "'Cairo', sans-serif",
+    fontWeight: 700,
+    fontSize: "12px",
+    padding: "8px",
     borderRadius: "8px",
     cursor: "pointer",
   },
