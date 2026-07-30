@@ -117,11 +117,71 @@ export default function MenuManager({ token }) {
     }
   };
 
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategory, setNewCategory] = useState({ name_ar: "", name_fr: "", name_en: "" });
+  const [savingCategory, setSavingCategory] = useState(false);
+
+  const addCategory = async () => {
+    if (!newCategory.name_ar) return;
+    setSavingCategory(true);
+    try {
+      await fetch(`${API_BASE}/api/admin/categories`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          branch_id: BRANCH_ID,
+          name: { ar: newCategory.name_ar, fr: newCategory.name_fr, en: newCategory.name_en },
+          display_order: menu.length + 1,
+        }),
+      });
+      setNewCategory({ name_ar: "", name_fr: "", name_en: "" });
+      setShowAddCategory(false);
+      loadMenu();
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
   if (status === "loading") return <div style={styles.statusMsg}>جاري تحميل المنيو...</div>;
   if (status === "error") return <div style={styles.statusMsgError}>تعذر تحميل المنيو</div>;
 
   return (
     <div style={styles.wrap}>
+      <div style={styles.categoryAddBlock}>
+        {showAddCategory ? (
+          <div style={styles.addForm}>
+            <input
+              style={styles.input}
+              value={newCategory.name_ar}
+              onChange={(e) => setNewCategory({ ...newCategory, name_ar: e.target.value })}
+              placeholder="اسم التصنيف بالعربي (مثلاً: حلويات)"
+            />
+            <input
+              style={styles.input}
+              value={newCategory.name_fr}
+              onChange={(e) => setNewCategory({ ...newCategory, name_fr: e.target.value })}
+              placeholder="بالفرنسية"
+            />
+            <input
+              style={styles.input}
+              value={newCategory.name_en}
+              onChange={(e) => setNewCategory({ ...newCategory, name_en: e.target.value })}
+              placeholder="بالإنجليزية"
+            />
+            <button style={styles.saveBtn} onClick={addCategory} disabled={savingCategory}>
+              {savingCategory ? "..." : "إضافة"}
+            </button>
+            <button style={styles.cancelBtn} onClick={() => setShowAddCategory(false)}>
+              إلغاء
+            </button>
+          </div>
+        ) : (
+          <button style={styles.addCategoryBtn} onClick={() => setShowAddCategory(true)}>
+            + إضافة فئة (تصنيف) جديدة
+          </button>
+        )}
+      </div>
+
       {menu.map((category) => (
         <div key={category.id} style={styles.categoryBlock}>
           <h3 style={styles.categoryTitle}>{category.name?.ar}</h3>
@@ -262,6 +322,19 @@ const styles = {
   wrap: { padding: "20px", direction: "rtl" },
   statusMsg: { padding: "40px", textAlign: "center", color: colors.muted },
   statusMsgError: { padding: "40px", textAlign: "center", color: "#F0B8A0" },
+  categoryAddBlock: { marginBottom: "20px" },
+  addCategoryBtn: {
+    background: "transparent",
+    border: `1px dashed ${colors.accent}`,
+    color: colors.accent,
+    borderRadius: "10px",
+    padding: "14px",
+    width: "100%",
+    fontSize: "14px",
+    fontWeight: 700,
+    fontFamily: "'Cairo', sans-serif",
+    cursor: "pointer",
+  },
   categoryBlock: {
     background: colors.surface,
     borderRadius: "14px",
