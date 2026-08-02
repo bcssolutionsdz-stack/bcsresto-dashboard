@@ -55,14 +55,16 @@ export default function TableSessions({ token }) {
   // نجمع كل الأصناف من كل الطلبات بنفس الجلسة، عشان نعرض فاتورة موحدة
   const flattenItems = (orders) => {
     const map = {};
-    orders.forEach((order) => {
-      order.order_items.forEach((oi) => {
-        const name = oi.menu_items?.name?.ar || "صنف";
-        if (!map[name]) map[name] = { name, quantity: 0, total: 0 };
-        map[name].quantity += oi.quantity;
-        map[name].total += oi.quantity * oi.unit_price;
+    orders
+      .filter((order) => order.status !== "cancelled")
+      .forEach((order) => {
+        order.order_items.forEach((oi) => {
+          const name = oi.menu_items?.name?.ar || "صنف";
+          if (!map[name]) map[name] = { name, quantity: 0, total: 0 };
+          map[name].quantity += oi.quantity;
+          map[name].total += oi.quantity * oi.unit_price;
+        });
       });
-    });
     return Object.values(map);
   };
 
