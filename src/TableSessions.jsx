@@ -13,6 +13,7 @@ function timeAgo(dateStr) {
 
 export default function TableSessions({ token }) {
   const [sessions, setSessions] = useState([]);
+  const [standaloneOrders, setStandaloneOrders] = useState([]);
   const [status, setStatus] = useState("loading");
   const [closingId, setClosingId] = useState(null);
 
@@ -23,6 +24,7 @@ export default function TableSessions({ token }) {
       .then((res) => res.json())
       .then((data) => {
         setSessions(data.sessions || []);
+        setStandaloneOrders(data.standaloneOrders || []);
         setStatus("success");
       })
       .catch(() => setStatus("error"));
@@ -40,6 +42,21 @@ export default function TableSessions({ token }) {
     setClosingId(sessionId);
     try {
       await fetch(`${API_BASE}/api/admin/sessions/${sessionId}/close`, {
+        method: "POST",
+        headers: authHeaders,
+      });
+      loadSessions();
+    } finally {
+      setClosingId(null);
+    }
+  };
+
+  const completeStandaloneOrder = async (orderId, total) => {
+    if (!window.confirm(`تأكيد استلام الدفع وإتمام الطلب بمبلغ ${total} دج؟`)) return;
+
+    setClosingId(orderId);
+    try {
+      await fetch(`${API_BASE}/api/admin/standalone-orders/${orderId}/complete`, {
         method: "POST",
         headers: authHeaders,
       });
@@ -70,10 +87,70 @@ export default function TableSessions({ token }) {
 
   return (
     <div style={styles.wrap}>
-      {sessions.length === 0 && (
-        <div style={styles.statusMsg}>لا يوجد طاولات مشغولة حالياً 🎉</div>
+      {sessions.length === 0 && standaloneOrders.length === 0 && (
+        <div style={styles.statusMsg}>لا يوجد طاولات مشغولة أو طلبات نشطة حالياً 🎉</div>
       )}
 
+      {standaloneOrders.length > 0 && (
+        <>
+          <h3 style={styles.sectionTitle}>🚗 طلبات الاستلام والتوصيل</h3>
+          <div style={styles.grid}>
+            {standaloneOrders.map((order) => (
+              <div key={order.id} style={styles.card}>
+                <div style={styles.cardHeader}>
+                  <span style={styles.tableLabel}>
+                    {order.order_type === "delivery" ? "🚗 توصيل" : "🏠 استلام"}
+                  </span>
+                  <span style={styles.timeLabel}>{timeAgo(order.created_at)}</span>
+                </div>
+
+                <div style={styles.customerInfo}>
+                  <div>{order.customer_name}</div>
+                  <div>{order.customer_phone}</div>
+                  {order.delivery_address && <div>{order.delivery_address}</div>}
+                </div>
+
+                <div style={styles.perforation}>
+                  {Array.from({ length: 16 }).map((_, i) => (
+                    <span key={i} style={styles.perfDot} />
+                  ))}
+                </div>
+
+                <div style={styles.itemsList}>
+                  {order.order_items.map((oi, idx) => (
+                    <div key={idx} style={styles.itemRow}>
+                      <span style={styles.itemQty}>×{oi.quantity}</span>
+                      <span style={styles.itemName}>{oi.menu_items?.name?.ar || "صنف"}</span>
+                      <span style={styles.itemTotal}>{oi.quantity * oi.unit_price} دج</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={styles.perforation}>
+                  {Array.from({ length: 16 }).map((_, i) => (
+                    <span key={i} style={styles.perfDot} />
+                  ))}
+                </div>
+
+                <div style={styles.totalRow}>
+                  <span>الإجمالي</span>
+                  <span style={styles.totalValue}>{order.total_price} دج</span>
+                </div>
+
+                <button
+                  style={styles.closeBtn}
+                  onClick={() => completeStandaloneOrder(order.id, order.total_price)}
+                  disabled={closingId === order.id}
+                >
+                  {closingId === order.id ? "..." : "تأكيد الاستلام والدفع"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {sessions.length > 0 && <h3 style={styles.sectionTitle}>🍽️ الطاولات المشغولة</h3>}
       <div style={styles.grid}>
         {sessions.map((session) => {
           const items = flattenItems(session.orders || []);
@@ -142,6 +219,21 @@ const styles = {
   wrap: { padding: "20px", direction: "rtl" },
   statusMsg: { padding: "40px", textAlign: "center", color: colors.muted },
   statusMsgError: { padding: "40px", textAlign: "center", color: "#F0B8A0" },
+  sectionTitle: {
+    fontFamily: "'Cairo', sans-serif",
+    fontWeight: 800,
+    fontSize: "15px",
+    color: colors.ivory,
+    margin: "0 0 14px",
+  },
+  customerInfo: {
+    padding: "0 16px 10px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+    fontSize: "12px",
+    color: colors.muted,
+  },
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
