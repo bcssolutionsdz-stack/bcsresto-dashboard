@@ -36,6 +36,53 @@ export default function TableSessions({ token }) {
     return () => clearInterval(interval);
   }, [loadSessions]);
 
+  const printReceipt = (label, items, total, extraInfo = []) => {
+    const receiptWindow = window.open("", "_blank", "width=380,height=600");
+    const itemsHtml = items
+      .map(
+        (item) =>
+          `<div class="row"><span>${item.quantity || 1}× ${item.name}</span><span>${item.total} دج</span></div>`
+      )
+      .join("");
+
+    const extraHtml = extraInfo
+      .filter(Boolean)
+      .map((line) => `<div class="extra">${line}</div>`)
+      .join("");
+
+    receiptWindow.document.write(`
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="UTF-8" />
+        <title>فاتورة - BCSresto</title>
+        <style>
+          body { font-family: 'Courier New', monospace; width: 280px; margin: 0 auto; padding: 16px; }
+          h1 { text-align: center; font-size: 18px; margin: 0 0 4px; }
+          .sub { text-align: center; font-size: 12px; color: #555; margin-bottom: 12px; }
+          .extra { font-size: 12px; margin-bottom: 4px; }
+          hr { border: none; border-top: 1px dashed #000; margin: 10px 0; }
+          .row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+          .total { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-top: 10px; }
+          .footer { text-align: center; font-size: 11px; color: #777; margin-top: 16px; }
+        </style>
+      </head>
+      <body>
+        <h1>BCSresto</h1>
+        <div class="sub">${label}</div>
+        <div class="sub">${new Date().toLocaleString("ar-DZ")}</div>
+        ${extraHtml}
+        <hr />
+        ${itemsHtml}
+        <hr />
+        <div class="total"><span>الإجمالي</span><span>${total} دج</span></div>
+        <div class="footer">شكراً لزيارتكم 🙏</div>
+        <script>window.onload = () => { window.print(); }</script>
+      </body>
+      </html>
+    `);
+    receiptWindow.document.close();
+  };
+
   const closeSession = async (sessionId, tableNumber, total) => {
     if (!window.confirm(`تأكيد إغلاق فاتورة طاولة ${tableNumber} بمبلغ ${total} دج؟`)) return;
 
@@ -138,6 +185,28 @@ export default function TableSessions({ token }) {
                 </div>
 
                 <button
+                  style={styles.printBtn}
+                  onClick={() =>
+                    printReceipt(
+                      order.order_type === "delivery" ? "توصيل" : "استلام",
+                      order.order_items.map((oi) => ({
+                        name: oi.menu_items?.name?.ar || "صنف",
+                        quantity: oi.quantity,
+                        total: oi.quantity * oi.unit_price,
+                      })),
+                      order.total_price,
+                      [
+                        `الاسم: ${order.customer_name}`,
+                        `الهاتف: ${order.customer_phone}`,
+                        order.delivery_address ? `العنوان: ${order.delivery_address}` : null,
+                      ]
+                    )
+                  }
+                >
+                  🖨️ طباعة الفاتورة
+                </button>
+
+                <button
                   style={styles.closeBtn}
                   onClick={() => completeStandaloneOrder(order.id, order.total_price)}
                   disabled={closingId === order.id}
@@ -189,6 +258,19 @@ export default function TableSessions({ token }) {
                 <span>الإجمالي</span>
                 <span style={styles.totalValue}>{session.total_amount} دج</span>
               </div>
+
+              <button
+                style={styles.printBtn}
+                onClick={() =>
+                  printReceipt(
+                    `طاولة ${session.tables?.table_number || "؟"}`,
+                    items,
+                    session.total_amount
+                  )
+                }
+              >
+                🖨️ طباعة الفاتورة
+              </button>
 
               <button
                 style={styles.closeBtn}
@@ -275,6 +357,20 @@ const styles = {
     color: colors.ivory,
   },
   totalValue: { fontSize: "17px", fontWeight: 800, color: colors.accent },
+  printBtn: {
+    display: "block",
+    width: "calc(100% - 32px)",
+    margin: "4px 16px 8px",
+    background: "transparent",
+    color: colors.ivory,
+    border: `1px solid ${colors.line}`,
+    borderRadius: "10px",
+    padding: "10px",
+    fontFamily: "'Cairo', sans-serif",
+    fontWeight: 700,
+    fontSize: "12px",
+    cursor: "pointer",
+  },
   closeBtn: {
     display: "block",
     width: "calc(100% - 32px)",
