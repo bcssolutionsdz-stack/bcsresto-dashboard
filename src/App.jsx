@@ -7,18 +7,18 @@ const API_BASE = "https://bcsresto-backend.onrender.com";
 const BRANCH_ID = "22222222-2222-2222-2222-222222222222";
 const POLL_INTERVAL = 5000; // نحدّث الطلبات كل 5 ثواني
 
-const COLUMNS = [
-  { status: "new", label: "طلبات جديدة", nextStatus: "preparing", nextLabel: "بدء التحضير" },
-  { status: "preparing", label: "قيد التحضير", nextStatus: "ready", nextLabel: "جاهز" },
-  { status: "ready", label: "جاهز للتقديم", nextStatus: "completed", nextLabel: "تم التسليم" },
+const COLUMN_KEYS = [
+  { status: "new", labelKey: "colNew", nextStatus: "preparing", nextLabelKey: "nextNew" },
+  { status: "preparing", labelKey: "colPreparing", nextStatus: "ready", nextLabelKey: "nextPreparing" },
+  { status: "ready", labelKey: "colReady", nextStatus: "completed", nextLabelKey: "nextReady" },
 ];
 
-function timeAgo(dateStr) {
+function timeAgo(dateStr, dt) {
   const diffMs = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "الآن";
-  if (mins === 1) return "منذ دقيقة";
-  return `منذ ${mins} د`;
+  if (mins < 1) return dt.now;
+  if (mins === 1) return dt.minuteAgo;
+  return dt.minutesAgo(mins);
 }
 
 export default function App() {
@@ -33,6 +33,97 @@ export default function App() {
   const [token, setToken] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [activeTab, setActiveTab] = useState("kitchen"); // kitchen | menu
+  const [lang, setLang] = useState("ar");
+
+  const LANGS = [
+    { code: "ar", label: "AR" },
+    { code: "fr", label: "FR" },
+    { code: "en", label: "EN" },
+  ];
+
+  const DASH_TEXT = {
+    ar: {
+      title: "🍳 لوحة المطبخ — BCSresto",
+      liveUpdate: "تحديث تلقائي كل 5 ثواني",
+      logout: "تسجيل الخروج",
+      tabKitchen: "المطبخ",
+      tabMenu: "إدارة المنيو",
+      tabInvoices: "الفواتير",
+      colNew: "طلبات جديدة",
+      colPreparing: "قيد التحضير",
+      colReady: "جاهز للتقديم",
+      nextNew: "بدء التحضير",
+      nextPreparing: "جاهز",
+      nextReady: "تم التسليم",
+      emptyCol: "لا يوجد طلبات هنا",
+      table: "طاولة",
+      delivery: "توصيل",
+      pickup: "استلام",
+      now: "الآن",
+      minuteAgo: "منذ دقيقة",
+      minutesAgo: (n) => `منذ ${n} د`,
+      cancelOrder: "إلغاء الطلب",
+      loading: "جاري تحميل الطلبات...",
+      error: "تعذر تحميل الطلبات. تأكد إن السيرفر شغال.",
+    },
+    fr: {
+      title: "🍳 Tableau Cuisine — BCSresto",
+      liveUpdate: "Mise à jour toutes les 5s",
+      logout: "Déconnexion",
+      tabKitchen: "Cuisine",
+      tabMenu: "Gérer le menu",
+      tabInvoices: "Factures",
+      colNew: "Nouvelles commandes",
+      colPreparing: "En préparation",
+      colReady: "Prêt à servir",
+      nextNew: "Commencer",
+      nextPreparing: "Prêt",
+      nextReady: "Livré",
+      emptyCol: "Aucune commande ici",
+      table: "Table",
+      delivery: "Livraison",
+      pickup: "À emporter",
+      now: "À l'instant",
+      minuteAgo: "il y a 1 min",
+      minutesAgo: (n) => `il y a ${n} min`,
+      cancelOrder: "Annuler la commande",
+      loading: "Chargement des commandes...",
+      error: "Impossible de charger. Vérifiez le serveur.",
+    },
+    en: {
+      title: "🍳 Kitchen Board — BCSresto",
+      liveUpdate: "Auto-refresh every 5s",
+      logout: "Logout",
+      tabKitchen: "Kitchen",
+      tabMenu: "Manage Menu",
+      tabInvoices: "Invoices",
+      colNew: "New Orders",
+      colPreparing: "Preparing",
+      colReady: "Ready to Serve",
+      nextNew: "Start Preparing",
+      nextPreparing: "Ready",
+      nextReady: "Delivered",
+      emptyCol: "No orders here",
+      table: "Table",
+      delivery: "Delivery",
+      pickup: "Pickup",
+      now: "Just now",
+      minuteAgo: "1 min ago",
+      minutesAgo: (n) => `${n} min ago`,
+      cancelOrder: "Cancel Order",
+      loading: "Loading orders...",
+      error: "Couldn't load orders. Check the server.",
+    },
+  };
+
+  const dt = DASH_TEXT[lang];
+
+  const COLUMNS = COLUMN_KEYS.map((c) => ({
+    status: c.status,
+    label: dt[c.labelKey],
+    nextStatus: c.nextStatus,
+    nextLabel: dt[c.nextLabelKey],
+  }));
 
   useEffect(() => {
     const savedToken = localStorage.getItem("bcsresto_token");
@@ -119,14 +210,28 @@ export default function App() {
   return (
     <div style={styles.page}>
       <header style={styles.header}>
-        <h1 style={styles.title}>🍳 لوحة المطبخ — BCSresto</h1>
+        <h1 style={styles.title}>{dt.title}</h1>
         <div style={styles.headerRight}>
           <span style={styles.staffName}>{staff.name}</span>
+          <div style={styles.langSwitch}>
+            {LANGS.map((l) => (
+              <button
+                key={l.code}
+                onClick={() => setLang(l.code)}
+                style={{
+                  ...styles.langBtn,
+                  ...(lang === l.code ? styles.langBtnActive : {}),
+                }}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
           <button style={styles.logoutBtn} onClick={handleLogout}>
-            تسجيل الخروج
+            {dt.logout}
           </button>
           <span style={styles.liveDot}>
-            <span style={styles.dot} /> تحديث تلقائي كل 5 ثواني
+            <span style={styles.dot} /> {dt.liveUpdate}
           </span>
         </div>
       </header>
@@ -137,19 +242,19 @@ export default function App() {
             style={{ ...styles.tabBtn, ...(activeTab === "kitchen" ? styles.tabBtnActive : {}) }}
             onClick={() => setActiveTab("kitchen")}
           >
-            🍳 المطبخ
+            🍳 {dt.tabKitchen}
           </button>
           <button
             style={{ ...styles.tabBtn, ...(activeTab === "menu" ? styles.tabBtnActive : {}) }}
             onClick={() => setActiveTab("menu")}
           >
-            📋 إدارة المنيو
+            📋 {dt.tabMenu}
           </button>
           <button
             style={{ ...styles.tabBtn, ...(activeTab === "sessions" ? styles.tabBtnActive : {}) }}
             onClick={() => setActiveTab("sessions")}
           >
-            🧾 الفواتير
+            🧾 {dt.tabInvoices}
           </button>
         </nav>
       )}
@@ -158,9 +263,9 @@ export default function App() {
       {activeTab === "sessions" && <TableSessions token={token} />}
       {activeTab === "kitchen" && (
         <>
-          {status === "loading" && <div style={styles.statusMsg}>جاري تحميل الطلبات...</div>}
+          {status === "loading" && <div style={styles.statusMsg}>{dt.loading}</div>}
       {status === "error" && (
-        <div style={styles.statusMsgError}>تعذر تحميل الطلبات. تأكد إن السيرفر شغال.</div>
+        <div style={styles.statusMsgError}>{dt.error}</div>
       )}
 
       {status === "success" && (
@@ -176,7 +281,7 @@ export default function App() {
 
                 <div style={styles.columnBody}>
                   {colOrders.length === 0 && (
-                    <div style={styles.emptyCol}>لا يوجد طلبات هنا</div>
+                    <div style={styles.emptyCol}>{dt.emptyCol}</div>
                   )}
 
                   {colOrders.map((order) => (
@@ -184,12 +289,12 @@ export default function App() {
                       <div style={styles.ticketHeader}>
                         <span style={styles.ticketTable}>
                           {order.tables?.table_number
-                            ? `طاولة ${order.tables.table_number}`
+                            ? `${dt.table} ${order.tables.table_number}`
                             : order.order_type === "delivery"
-                            ? "توصيل"
-                            : "استلام"}
+                            ? dt.delivery
+                            : dt.pickup}
                         </span>
-                        <span style={styles.ticketTime}>{timeAgo(order.created_at)}</span>
+                        <span style={styles.ticketTime}>{timeAgo(order.created_at, dt)}</span>
                       </div>
 
                       <div style={styles.perforation}>
@@ -202,7 +307,7 @@ export default function App() {
                         {order.order_items.map((oi) => (
                           <div key={oi.id} style={styles.ticketItemRow}>
                             <span style={styles.itemQty}>×{oi.quantity}</span>
-                            <span style={styles.itemName}>{oi.menu_items?.name?.ar || "صنف"}</span>
+                            <span style={styles.itemName}>{oi.menu_items?.name?.[lang] || oi.menu_items?.name?.ar || "—"}</span>
                           </div>
                         ))}
                       </div>
@@ -221,7 +326,7 @@ export default function App() {
                           disabled={updatingId === order.id}
                           onClick={() => cancelOrderByManager(order.id)}
                         >
-                          إلغاء الطلب
+                          {dt.cancelOrder}
                         </button>
                       )}
                     </div>
@@ -273,6 +378,28 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "16px",
+  },
+  langSwitch: {
+    display: "flex",
+    gap: "4px",
+    background: colors.bg,
+    borderRadius: "16px",
+    padding: "3px",
+  },
+  langBtn: {
+    border: "none",
+    background: "transparent",
+    color: colors.muted,
+    fontSize: "11px",
+    fontWeight: 700,
+    padding: "5px 10px",
+    borderRadius: "14px",
+    cursor: "pointer",
+    fontFamily: "'Cairo', sans-serif",
+  },
+  langBtnActive: {
+    background: colors.accent,
+    color: "#fff",
   },
   staffName: {
     fontSize: "13px",
